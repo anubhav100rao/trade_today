@@ -22,6 +22,9 @@
 - [x] Build **Risk Analyst Agent**: System prompt + volatility calculation tools.
 - [x] Build **The Judge Node**: System prompt designed to synthesize the state and produce the final verdict.
 
+## Phase 3.5: Agent Testing
+- [x] Write pytest unit tests for agents (`tests/test_agents.py`) using mocked LLM calls to save Gemini credits.
+
 ## Phase 4: LangGraph Orchestration
 - [ ] Create the LangGraph `StateGraph`.
 - [ ] Add all nodes (Supervisor, the 4 Parallel Analysts, The Judge).
