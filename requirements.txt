@@ -1,0 +1,9 @@
+langchain
+langgraph
+langchain-google-genai
+yfinance
+duckduckgo-search
+streamlit
+chromadb
+pandas
+python-dotenv

@@ -1,16 +1,19 @@
 # Implementation Todo List
 
 ## Phase 1: Project Setup & Core Logic
-- [ ] Initialize Python virtual environment (`python -m venv venv` and `source venv/bin/activate`).
-- [ ] Create `requirements.txt` with dependencies: `langchain`, `langgraph`, `langchain-google-genai`, `yfinance`, `duckduckgo-search`, `streamlit`, `chromadb`, `pandas`.
-- [ ] Configure environment variables (create `.env` file for `GEMINI_API_KEY`).
-- [ ] Define the LangGraph State (`TradingState` using `TypedDict`).
+- [x] Initialize Python virtual environment (`python -m venv venv` and `source venv/bin/activate`).
+- [x] Create `requirements.txt` with dependencies: `langchain`, `langgraph`, `langchain-google-genai`, `yfinance`, `duckduckgo-search`, `streamlit`, `chromadb`, `pandas`.
+- [x] Configure environment variables (create `.env` file for `GEMINI_API_KEY`).
+- [x] Define the LangGraph State (`TradingState` using `TypedDict`).
 
 ## Phase 2: Tools Development
-- [ ] Implement `yfinance` tool functions (History prices, Fundamentals/Ratios, Balance Sheet).
-- [ ] Implement Technical Indicators logic (Moving Averages, RSI, MACD using pandas).
-- [ ] Implement DuckDuckGo search tool wrapper for fetching live financial news.
-- [ ] Setup local ChromaDB/FAISS pipeline for basic Document indexing (RAG foundation).
+- [x] Implement `yfinance` tool functions (History prices, Fundamentals/Ratios, Balance Sheet).
+- [x] Implement Technical Indicators logic (Moving Averages, RSI, MACD using pandas).
+- [x] Implement DuckDuckGo search tool wrapper for fetching live financial news.
+- [x] Setup local ChromaDB/FAISS pipeline for basic Document indexing (RAG foundation).
+
+## Phase 2.5: Tools Testing
+- [x] Write pytest unit and integration tests for tools (`tests/test_tools.py`).
 
 ## Phase 3: Agent Creation (Gemini-powered)
 - [ ] Build **Technical Analyst Agent**: System prompt + yfinance technical tools.
