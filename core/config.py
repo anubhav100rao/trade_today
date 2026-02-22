@@ -1,11 +1,16 @@
+from langchain_google_genai import ChatGoogleGenerativeAI
 import os
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
 load_dotenv()
 
-# Access environment variables
+# We get the API key from the environment
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-if not GEMINI_API_KEY or GEMINI_API_KEY == "your_gemini_api_key_here":
-    print("WARNING: GEMINI_API_KEY is not set or is set to the default placeholder. Please update the .env file.")
+def get_llm(temperature: float = 0.2):
+    """Returns a configured Gemini LLM instance."""
+    return ChatGoogleGenerativeAI(
+        model="gemini-2.5-flash", 
+        google_api_key=GEMINI_API_KEY, 
+        temperature=temperature
+    )

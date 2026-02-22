@@ -16,11 +16,11 @@
 - [x] Write pytest unit and integration tests for tools (`tests/test_tools.py`).
 
 ## Phase 3: Agent Creation (Gemini-powered)
-- [ ] Build **Technical Analyst Agent**: System prompt + yfinance technical tools.
-- [ ] Build **Fundamental Analyst Agent**: System prompt + yfinance fundamental tools.
-- [ ] Build **Sentiment Analyst Agent**: System prompt + DuckDuckGo news tool.
-- [ ] Build **Risk Analyst Agent**: System prompt + volatility calculation tools.
-- [ ] Build **The Judge Node**: System prompt designed to synthesize the state and produce the final verdict.
+- [x] Build **Technical Analyst Agent**: System prompt + yfinance technical tools.
+- [x] Build **Fundamental Analyst Agent**: System prompt + yfinance fundamental tools.
+- [x] Build **Sentiment Analyst Agent**: System prompt + DuckDuckGo news tool.
+- [x] Build **Risk Analyst Agent**: System prompt + volatility calculation tools.
+- [x] Build **The Judge Node**: System prompt designed to synthesize the state and produce the final verdict.
 
 ## Phase 4: LangGraph Orchestration
 - [ ] Create the LangGraph `StateGraph`.

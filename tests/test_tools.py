@@ -110,10 +110,10 @@ def test_search_web():
 
 # --- Tests for vector_db/ingestion.py ---
 
-@pytest.mark.skipif(not HAS_CHROMA, reason="ChromaDB not available (Python 3.14 incompatibility)")
-def test_chroma_db_ingestion_and_search():
+@pytest.mark.skipif(not HAS_CHROMA, reason="VectorDB not available")
+def test_faiss_ingestion_and_search():
     """
-    Test that we can index a document into local ChromaDB and search for it.
+    Test that we can index a document into local FAISS and search for it.
     """
     test_collection = "test_financial_docs"
     test_text = "Reliance Industries announced a massive profit margin this quarter."

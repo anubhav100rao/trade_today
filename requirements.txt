@@ -4,6 +4,8 @@ langchain-google-genai
 yfinance
 duckduckgo-search
 streamlit
-chromadb
+faiss-cpu
 pandas
 python-dotenv
+langchain-huggingface
+sentence-transformers
