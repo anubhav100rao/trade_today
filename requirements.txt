@@ -9,3 +9,5 @@ pandas
 python-dotenv
 langchain-huggingface
 sentence-transformers
+fastapi
+uvicorn

@@ -26,17 +26,17 @@
 - [x] Write pytest unit tests for agents (`tests/test_agents.py`) using mocked LLM calls to save Gemini credits.
 
 ## Phase 4: LangGraph Orchestration
-- [ ] Create the LangGraph `StateGraph`.
-- [ ] Add all nodes (Supervisor, the 4 Parallel Analysts, The Judge).
-- [ ] Design graph edges: Supervisor routing -> Parallel execution of Analysts -> Join at The Judge.
-- [ ] Compile the graph.
-- [ ] Write a simple CLI script (`test_graph.py`) to verify the execution trace using a sample Indian ticker (e.g., `RELIANCE.NS`).
+- [x] Create the LangGraph `StateGraph`.
+- [x] Add all nodes (Supervisor, the 4 Parallel Analysts, The Judge).
+- [x] Design graph edges: Supervisor routing -> Parallel execution of Analysts -> Join at The Judge.
+- [x] Compile the graph.
+- [x] Write a simple CLI script (`test_graph.py`) to verify the execution trace using a sample Indian ticker (e.g., `RELIANCE.NS`).
 
 ## Phase 5: Streamlit Interface
-- [ ] Setup basic Streamlit scaffolding (`app.py`).
-- [ ] Integrate chat input/output natively with the LangGraph execution.
-- [ ] Add sidebar for basic settings (API key override, debugging toggles).
-- [ ] Create expanders in the UI to display individual agent findings before summarizing the final verdict.
+- [x] Setup basic Streamlit scaffolding (`app.py`).
+- [x] Integrate chat input/output natively with the LangGraph execution.
+- [x] Add sidebar for basic settings (API key override, debugging toggles).
+- [x] Create expanders in the UI to display individual agent findings before summarizing the final verdict.
 
 ## Phase 6: Refinement & Testing
 - [ ] Test the pipeline with diverse Indian stocks across multiple sectors.
