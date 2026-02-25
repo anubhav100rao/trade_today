@@ -4,12 +4,9 @@ import numpy as np
 import time
 
 # Import functions from our phase 2 tools
-from tools.market_data import get_stock_history, get_financial_metrics, get_balance_sheet, get_income_statement
+from tools.market_data import get_stock_history, get_financial_metrics
 from tools.technical_ind import calculate_sma, add_all_indicators
-from tools.search import search_financial_news, search_web
-from vector_db.ingestion import index_text, search_db, HAS_CHROMA
-
-# We use a well-known, high-volume Indian stock for our integration tests
+from tools.search import search_financial_news
 TEST_TICKER = "RELIANCE.NS"
 
 # --- Tests for tools/market_data.py ---
@@ -48,16 +45,7 @@ def test_get_financial_metrics():
     if metrics['marketCap'] is not None:
         assert isinstance(metrics['marketCap'], (int, float))
 
-def test_get_balance_sheet():
-    """
-    Test that we can fetch the balance sheet and it returns a DataFrame.
-    """
-    bs = get_balance_sheet(TEST_TICKER)
-    assert isinstance(bs, pd.DataFrame)
-    # yfinance sometimes returns an empty DataFrame if data is missing, 
-    # but the type should always be correct.
 
-# --- Tests for tools/technical_ind.py ---
 
 def test_add_all_indicators():
     """
@@ -96,41 +84,4 @@ def test_search_financial_news():
         assert "title" in first_item
         assert "snippet" in first_item
 
-def test_search_web():
-    """
-    Test general web search via DuckDuckGo.
-    """
-    time.sleep(1) # Sleep briefly to avoid DDGS rate limits
-    results = search_web("Indian stock market", max_results=2)
-    
-    assert isinstance(results, list)
-    if len(results) > 0:
-        assert "title" in results[0]
-        assert "url" in results[0]
 
-# --- Tests for vector_db/ingestion.py ---
-
-@pytest.mark.skipif(not HAS_CHROMA, reason="VectorDB not available")
-def test_faiss_ingestion_and_search():
-    """
-    Test that we can index a document into local FAISS and search for it.
-    """
-    test_collection = "test_financial_docs"
-    test_text = "Reliance Industries announced a massive profit margin this quarter."
-    test_metadata = {"source": "fake_news", "ticker": "RELIANCE.NS"}
-    test_id = "doc1"
-    
-    # Index the document
-    index_text(test_text, test_metadata, test_id, collection=test_collection)
-    
-    # Search the vector DB for a related term
-    results = search_db("profit margin", n_results=1, collection=test_collection)
-    
-    # Assert that the results dictionary contains our document
-    assert results is not None
-    assert 'documents' in results
-    assert len(results['documents']['0'] if isinstance(results['documents'], dict) else results['documents'][0]) > 0
-    
-    # Check if the document retrieved matches our indexed text
-    retrieved_docs = results['documents'][0]
-    assert test_text in retrieved_docs

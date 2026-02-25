@@ -55,24 +55,3 @@ def get_financial_metrics(ticker: str) -> Dict[str, Any]:
         print(f"Error fetching metrics for {ticker}: {e}")
         return {}
 
-def get_balance_sheet(ticker: str) -> pd.DataFrame:
-    """
-    Fetches balance sheet data.
-    """
-    try:
-        stock = yf.Ticker(ticker)
-        return stock.balance_sheet
-    except Exception as e:
-        print(f"Error fetching balance sheet for {ticker}: {e}")
-        return pd.DataFrame()
-
-def get_income_statement(ticker: str) -> pd.DataFrame:
-    """
-    Fetches income statement data.
-    """
-    try:
-        stock = yf.Ticker(ticker)
-        return stock.income_stmt
-    except Exception as e:
-        print(f"Error fetching income stmt for {ticker}: {e}")
-        return pd.DataFrame()

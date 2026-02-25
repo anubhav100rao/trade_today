@@ -1,7 +1,6 @@
 import streamlit as st
 import os
 from graph.workflow import build_graph
-import uuid
 
 # --- Setup Streamlit Page ---
 st.set_page_config(page_title="Trade Today AI", layout="wide", page_icon="📈")
