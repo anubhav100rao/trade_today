@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    container_name: tradetoday_api
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    command: uvicorn api:app --host 0.0.0.0 --port 8000 --reload
+    restart: unless-stopped
+
+  frontend:
+    build: .
+    container_name: tradetoday_frontend
+    ports:
+      - "8501:8501"
+    env_file:
+      - .env
+    command: streamlit run app.py --server.address=0.0.0.0
+    restart: unless-stopped
+    depends_on:
+      - api
+
+  n8n:
+    image: n8nio/n8n
+    container_name: tradetoday_n8n
+    ports:
+      - "5678:5678"
+    environment:
+      - GENERIC_TIMEZONE=Asia/Kolkata
+      - TZ=Asia/Kolkata
+      # n8n needs to know its own URL for webhooks
+      - WEBHOOK_URL=http://localhost:5678/
+      # Basic auth for n8n dashboard
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=tradetoday
+    volumes:
+      - n8n_data:/home/node/.n8n
+    restart: unless-stopped
+    depends_on:
+      - api
+
+volumes:
+  n8n_data:

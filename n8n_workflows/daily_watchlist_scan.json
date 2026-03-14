@@ -1,0 +1,213 @@
+{
+  "name": "Trade Today - Daily Pre-Market Watchlist Scan",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Pre-Market 9AM IST",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://api:8000/watchlist-scan",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"tickers\": [\n    \"RELIANCE.NS\",\n    \"TCS.NS\",\n    \"INFY.NS\",\n    \"HDFCBANK.NS\",\n    \"ICICIBANK.NS\",\n    \"WIPRO.NS\",\n    \"TATAMOTORS.NS\",\n    \"SBIN.NS\",\n    \"BHARTIARTL.NS\",\n    \"ITC.NS\"\n  ]\n}",
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "id": "http-watchlist-scan",
+      "name": "Scan Watchlist",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [250, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-actionable",
+              "leftValue": "={{ $json.actionable.length }}",
+              "rightValue": "0",
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-has-signals",
+      "name": "Has Actionable Signals?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [500, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format actionable signals into an HTML email\nconst data = $input.first().json;\nconst actionable = data.actionable;\nconst allSignals = data.signals;\nconst totalScanned = data.total_scanned;\nconst now = new Date().toLocaleString('en-IN', {timeZone: 'Asia/Kolkata'});\n\nlet subject = `🎯 Trade Today Alert: ${actionable.length} Actionable Signal(s) Detected`;\n\nlet html = `\n<div style=\"font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto;\">\n  <div style=\"background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); color: white; padding: 24px; border-radius: 12px 12px 0 0;\">\n    <h1 style=\"margin: 0; font-size: 22px;\">📈 Trade Today — Daily Watchlist Scan</h1>\n    <p style=\"margin: 8px 0 0; opacity: 0.8; font-size: 14px;\">🔍 Scanned ${totalScanned} stocks | 🎯 ${actionable.length} actionable signal(s)</p>\n  </div>\n\n  <div style=\"background: #fff3cd; border-left: 4px solid #ffc107; padding: 16px; margin: 0;\">\n    <h2 style=\"margin: 0 0 12px; font-size: 18px; color: #856404;\">⚡ Actionable Signals</h2>\n`;\n\nfor (const signal of actionable) {\n  const bgColor = signal.recommendation === 'BUY' ? '#d4edda' : '#f8d7da';\n  const borderColor = signal.recommendation === 'BUY' ? '#28a745' : '#dc3545';\n  const emoji = signal.recommendation === 'BUY' ? '🟢' : '🔴';\n  const riskColor = signal.risk_level.includes('HIGH') ? '#dc3545' :\n                    signal.risk_level.includes('MEDIUM') ? '#ffc107' : '#28a745';\n\n  html += `\n    <div style=\"background: ${bgColor}; border-left: 4px solid ${borderColor}; padding: 12px 16px; margin: 8px 0; border-radius: 0 8px 8px 0;\">\n      <div style=\"font-size: 16px; font-weight: bold;\">${emoji} ${signal.ticker}: <span style=\"color: ${borderColor};\">${signal.recommendation}</span></div>\n      <div style=\"font-size: 13px; color: #555; margin-top: 4px;\">Risk: <span style=\"color: ${riskColor}; font-weight: bold;\">${signal.risk_level}</span></div>\n      <div style=\"font-size: 13px; color: #333; margin-top: 4px;\">${signal.summary}</div>\n    </div>\n`;\n}\n\nhtml += `\n  </div>\n\n  <div style=\"padding: 16px; background: #f8f9fa; border-top: 1px solid #dee2e6;\">\n    <h2 style=\"margin: 0 0 12px; font-size: 18px; color: #333;\">📋 Full Scan Report</h2>\n    <table style=\"width: 100%; border-collapse: collapse; font-size: 14px;\">\n      <thead>\n        <tr style=\"background: #e9ecef;\">\n          <th style=\"padding: 8px 12px; text-align: left; border-bottom: 2px solid #dee2e6;\">Stock</th>\n          <th style=\"padding: 8px 12px; text-align: center; border-bottom: 2px solid #dee2e6;\">Signal</th>\n          <th style=\"padding: 8px 12px; text-align: center; border-bottom: 2px solid #dee2e6;\">Risk</th>\n        </tr>\n      </thead>\n      <tbody>\n`;\n\nfor (const signal of allSignals) {\n  const signalColor = signal.recommendation === 'BUY' ? '#28a745' :\n                      signal.recommendation === 'SELL' ? '#dc3545' : '#6c757d';\n  const emoji = signal.recommendation === 'BUY' ? '🟢' :\n                signal.recommendation === 'SELL' ? '🔴' : '🟡';\n\n  html += `\n        <tr style=\"border-bottom: 1px solid #dee2e6;\">\n          <td style=\"padding: 8px 12px; font-weight: bold;\">${signal.ticker}</td>\n          <td style=\"padding: 8px 12px; text-align: center; color: ${signalColor}; font-weight: bold;\">${emoji} ${signal.recommendation}</td>\n          <td style=\"padding: 8px 12px; text-align: center;\">${signal.risk_level}</td>\n        </tr>\n`;\n}\n\nhtml += `\n      </tbody>\n    </table>\n  </div>\n\n  <div style=\"background: #1a1a2e; color: #aaa; padding: 16px; border-radius: 0 0 12px 12px; font-size: 12px; text-align: center;\">\n    ⏰ Generated at ${now} IST | Trade Today AI Trading Swarm\n  </div>\n</div>\n`;\n\nreturn [{\n  json: {\n    subject: subject,\n    html_body: html,\n    actionable_count: actionable.length,\n    total_scanned: totalScanned\n  }\n}];"
+      },
+      "id": "format-message",
+      "name": "Format Alert Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [750, -100]
+    },
+    {
+      "parameters": {
+        "jsCode": "// No actionable signals — build an all-clear HTML email\nconst data = $input.first().json;\nconst allSignals = data.signals;\nconst totalScanned = data.total_scanned;\nconst now = new Date().toLocaleString('en-IN', {timeZone: 'Asia/Kolkata'});\n\nlet subject = `✅ Trade Today: All Clear — No Actionable Signals Today`;\n\nlet html = `\n<div style=\"font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto;\">\n  <div style=\"background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); color: white; padding: 24px; border-radius: 12px 12px 0 0;\">\n    <h1 style=\"margin: 0; font-size: 22px;\">📈 Trade Today — Daily Watchlist Scan</h1>\n    <p style=\"margin: 8px 0 0; opacity: 0.8; font-size: 14px;\">🔍 Scanned ${totalScanned} stocks</p>\n  </div>\n\n  <div style=\"background: #d4edda; border-left: 4px solid #28a745; padding: 16px; margin: 0;\">\n    <h2 style=\"margin: 0; font-size: 18px; color: #155724;\">✅ All Clear</h2>\n    <p style=\"margin: 8px 0 0; color: #155724;\">No strong BUY or SELL signals detected today. All stocks are in HOLD territory.</p>\n  </div>\n\n  <div style=\"padding: 16px; background: #f8f9fa; border-top: 1px solid #dee2e6;\">\n    <h2 style=\"margin: 0 0 12px; font-size: 18px; color: #333;\">📋 Full Scan Report</h2>\n    <table style=\"width: 100%; border-collapse: collapse; font-size: 14px;\">\n      <thead>\n        <tr style=\"background: #e9ecef;\">\n          <th style=\"padding: 8px 12px; text-align: left; border-bottom: 2px solid #dee2e6;\">Stock</th>\n          <th style=\"padding: 8px 12px; text-align: center; border-bottom: 2px solid #dee2e6;\">Signal</th>\n          <th style=\"padding: 8px 12px; text-align: center; border-bottom: 2px solid #dee2e6;\">Risk</th>\n        </tr>\n      </thead>\n      <tbody>\n`;\n\nfor (const signal of allSignals) {\n  const emoji = signal.recommendation === 'HOLD' ? '🟡' : '⚪';\n  html += `\n        <tr style=\"border-bottom: 1px solid #dee2e6;\">\n          <td style=\"padding: 8px 12px; font-weight: bold;\">${signal.ticker}</td>\n          <td style=\"padding: 8px 12px; text-align: center; color: #6c757d; font-weight: bold;\">${emoji} ${signal.recommendation}</td>\n          <td style=\"padding: 8px 12px; text-align: center;\">${signal.risk_level}</td>\n        </tr>\n`;\n}\n\nhtml += `\n      </tbody>\n    </table>\n  </div>\n\n  <div style=\"background: #1a1a2e; color: #aaa; padding: 16px; border-radius: 0 0 12px 12px; font-size: 12px; text-align: center;\">\n    ⏰ Generated at ${now} IST | Trade Today AI Trading Swarm\n  </div>\n</div>\n`;\n\nreturn [{\n  json: {\n    subject: subject,\n    html_body: html,\n    actionable_count: 0,\n    total_scanned: totalScanned\n  }\n}];"
+      },
+      "id": "format-no-signals",
+      "name": "Format All-Clear Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [750, 150]
+    },
+    {
+      "parameters": {
+        "sendTo": "anubhavkumarrao100@gmail.com",
+        "subject": "={{ $json.subject }}",
+        "emailType": "html",
+        "html": "={{ $json.html_body }}",
+        "options": {}
+      },
+      "id": "email-alert",
+      "name": "Email Alert Report",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [1050, -100],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "CONFIGURE_ME",
+          "name": "Gmail Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "anubhavkumarrao100@gmail.com",
+        "subject": "={{ $json.subject }}",
+        "emailType": "html",
+        "html": "={{ $json.html_body }}",
+        "options": {}
+      },
+      "id": "email-all-clear",
+      "name": "Email All-Clear Report",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [1050, 150],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "CONFIGURE_ME",
+          "name": "Gmail Account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Pre-Market 9AM IST": {
+      "main": [
+        [
+          {
+            "node": "Scan Watchlist",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scan Watchlist": {
+      "main": [
+        [
+          {
+            "node": "Has Actionable Signals?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Actionable Signals?": {
+      "main": [
+        [
+          {
+            "node": "Format Alert Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format All-Clear Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Alert Email": {
+      "main": [
+        [
+          {
+            "node": "Email Alert Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format All-Clear Email": {
+      "main": [
+        [
+          {
+            "node": "Email All-Clear Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Kolkata"
+  },
+  "tags": [
+    {
+      "name": "trading"
+    },
+    {
+      "name": "daily-scan"
+    }
+  ]
+}

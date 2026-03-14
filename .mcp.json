@@ -1,0 +1,21 @@
+{
+  "mcpServers": {
+    "sqlite": {
+      "command": "uvx",
+      "args": [
+        "mcp-server-sqlite",
+        "--db-path",
+        "/Users/anubhav100rao/development/trade_today/data/trade_today.db"
+      ]
+    },
+    "google-sheets": {
+      "command": "uvx",
+      "args": [
+        "mcp-google-sheets"
+      ],
+      "env": {
+        "GOOGLE_APPLICATION_CREDENTIALS": "/Users/anubhav100rao/.config/google/gen-lang-client-0344945223-a7160face74e.json"
+      }
+    }
+  }
+}

@@ -8,3 +8,5 @@ pandas
 python-dotenv
 fastapi
 uvicorn
+crewai[google-genai]
+crewai-tools

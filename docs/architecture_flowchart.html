@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trade Today - Complete Architecture Flowchart</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #0d1117;
+            color: #c9d1d9;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            font-size: 28px;
+            margin: 20px 0;
+            color: #58a6ff;
+        }
+        h2 {
+            font-size: 22px;
+            margin: 30px 0 15px;
+            color: #79c0ff;
+            border-bottom: 1px solid #30363d;
+            padding-bottom: 8px;
+        }
+        .section {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 24px;
+            margin: 20px auto;
+            max-width: 1400px;
+        }
+        .mermaid {
+            display: flex;
+            justify-content: center;
+            margin: 10px 0;
+        }
+        .mermaid svg {
+            max-width: 100%;
+        }
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            justify-content: center;
+            margin: 15px 0;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+        }
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+        }
+        .note {
+            font-size: 13px;
+            color: #8b949e;
+            text-align: center;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Trade Today - Complete System Architecture</h1>
+
+<!-- ============================================ -->
+<!-- SECTION 1: HIGH-LEVEL SYSTEM OVERVIEW -->
+<!-- ============================================ -->
+<div class="section">
+    <h2>1. High-Level System Overview</h2>
+    <div class="legend">
+        <div class="legend-item"><div class="legend-color" style="background:#2ea043"></div> User Interfaces</div>
+        <div class="legend-item"><div class="legend-color" style="background:#1f6feb"></div> Routing & Orchestration</div>
+        <div class="legend-item"><div class="legend-color" style="background:#8957e5"></div> LangGraph Pipeline</div>
+        <div class="legend-item"><div class="legend-color" style="background:#da3633"></div> CrewAI Crew</div>
+        <div class="legend-item"><div class="legend-color" style="background:#d29922"></div> External APIs & Tools</div>
+        <div class="legend-item"><div class="legend-color" style="background:#388bfd"></div> Automation & Storage</div>
+    </div>
+    <pre class="mermaid">
+    flowchart TB
+        subgraph UI["User Interfaces"]
+            style UI fill:#0d2818,stroke:#2ea043,color:#fff
+            ST["Streamlit UI<br/>:8501"]
+            API["FastAPI<br/>:8000"]
+        end
+
+        subgraph ROUTING["Intent Router"]
+            style ROUTING fill:#0d1d38,stroke:#1f6feb,color:#fff
+            CLS["Intent Classifier<br/>(Gemini LLM)"]
+            TE["Ticker Extractor<br/>(Gemini LLM)"]
+        end
+
+        subgraph LG["LangGraph Pipeline"]
+            style LG fill:#1a0d2e,stroke:#8957e5,color:#fff
+            SUP["Supervisor Node"]
+            TA["Technical Analyst"]
+            FA["Fundamental Analyst"]
+            SA["Sentiment Analyst"]
+            RA["Risk Analyst"]
+            JG["Judge Node"]
+        end
+
+        subgraph CREW["CrewAI Crew"]
+            style CREW fill:#2d1117,stroke:#da3633,color:#fff
+            SS["Stock Scorer Agent"]
+            CA["Correlation Analyst"]
+            PS["Portfolio Strategist"]
+        end
+
+        subgraph TOOLS["External APIs & Tools"]
+            style TOOLS fill:#2d2000,stroke:#d29922,color:#fff
+            YF["Yahoo Finance<br/>(yfinance)"]
+            DDG["DuckDuckGo<br/>(News Search)"]
+            GEM["Google Gemini<br/>(LLM)"]
+        end
+
+        subgraph AUTO["Automation & Storage"]
+            style AUTO fill:#0d1d38,stroke:#388bfd,color:#fff
+            N8N["n8n Workflow<br/>:5678"]
+            SQL["SQLite MCP<br/>(Scan History)"]
+            GS["Google Sheets MCP<br/>(Watchlist)"]
+            EMAIL["Gmail<br/>(Email Reports)"]
+        end
+
+        ST --> CLS
+        API --> CLS
+        CLS -->|single_stock| LG
+        CLS -->|compare / portfolio| TE
+        TE --> CREW
+
+        SUP --> TA & FA & SA & RA
+        TA & FA & SA & RA --> JG
+
+        SS -->|"calls LangGraph<br/>per stock"| LG
+        SS --> CA --> PS
+
+        TA --> YF
+        FA --> YF
+        RA --> YF
+        SA --> DDG
+        CA --> YF
+
+        LG --> GEM
+        CREW --> GEM
+
+        N8N -->|"POST /watchlist-scan"| API
+        N8N --> EMAIL
+        API --> SQL
+        GS -->|"Watchlist tickers"| N8N
+    </pre>
+</div>
+
+<!-- ============================================ -->
+<!-- SECTION 2: INTENT CLASSIFICATION & ROUTING -->
+<!-- ============================================ -->
+<div class="section">
+    <h2>2. Intent Classification & Query Routing</h2>
+    <pre class="mermaid">
+    flowchart LR
+        Q["User Query<br/>(free text)"] --> CLS["classify_intent()<br/>Gemini @ 0.0 temp"]
+
+        CLS -->|"single_stock_analysis"| R1["route_query()"]
+        CLS -->|"compare_stocks"| R2["extract_tickers()"]
+        CLS -->|"portfolio_allocation"| R2
+        CLS -->|"portfolio_analysis"| R2
+
+        R1 --> LG["LangGraph<br/>build_graph().invoke()"]
+        R2 --> CR["CrewAI Crew"]
+
+        CR -->|"compare_stocks"| CSC["run_compare_stocks_crew()"]
+        CR -->|"portfolio_*"| PC["run_portfolio_crew()"]
+
+        style Q fill:#1a1a2e,stroke:#58a6ff,color:#fff
+        style CLS fill:#0d1d38,stroke:#1f6feb,color:#fff
+        style R1 fill:#1a0d2e,stroke:#8957e5,color:#fff
+        style R2 fill:#2d1117,stroke:#da3633,color:#fff
+        style LG fill:#1a0d2e,stroke:#8957e5,color:#fff
+        style CR fill:#2d1117,stroke:#da3633,color:#fff
+        style CSC fill:#2d1117,stroke:#da3633,color:#fff
+        style PC fill:#2d1117,stroke:#da3633,color:#fff
+
+        Q1["'How is Reliance today?'"] -.->|single_stock| CLS
+        Q2["'Compare TCS vs INFY'"] -.->|compare| CLS
+        Q3["'Invest 5L in IT stocks'"] -.->|portfolio_alloc| CLS
+        Q4["'How is my portfolio?'"] -.->|portfolio_analysis| CLS
+
+        style Q1 fill:#161b22,stroke:#30363d,color:#8b949e
+        style Q2 fill:#161b22,stroke:#30363d,color:#8b949e
+        style Q3 fill:#161b22,stroke:#30363d,color:#8b949e
+        style Q4 fill:#161b22,stroke:#30363d,color:#8b949e
+    </pre>
+</div>
+
+<!-- ============================================ -->
+<!-- SECTION 3: LANGGRAPH SINGLE-STOCK PIPELINE -->
+<!-- ============================================ -->
+<div class="section">
+    <h2>3. LangGraph Single-Stock Analysis Pipeline</h2>
+    <pre class="mermaid">
+    flowchart TB
+        START(["START"]) --> SUP
+
+        subgraph SUP_BOX["Supervisor Node"]
+            style SUP_BOX fill:#1a0d2e,stroke:#8957e5,color:#fff
+            SUP["Extract Ticker<br/>Gemini @ 0.0 temp"]
+            SUP --> TICK["Append .NS/.BO suffix"]
+        end
+
+        TICK --> TA & FA & SA & RA
+
+        subgraph PARALLEL["Parallel Analyst Execution"]
+            style PARALLEL fill:#161b22,stroke:#30363d,color:#fff
+
+            subgraph TA_BOX["Technical Analyst"]
+                style TA_BOX fill:#0d2818,stroke:#2ea043,color:#fff
+                TA["Fetch 3mo OHLCV<br/>(yfinance)"]
+                TA --> TI["Calculate Indicators<br/>SMA_20, SMA_50<br/>EMA_20, RSI_14, MACD"]
+                TI --> TA_LLM["LLM Analysis<br/>Gemini @ 0.1 temp"]
+                TA_LLM --> TA_OUT["Signal:<br/>Bullish / Bearish / Neutral"]
+            end
+
+            subgraph FA_BOX["Fundamental Analyst"]
+                style FA_BOX fill:#0d1d38,stroke:#1f6feb,color:#fff
+                FA["Fetch Metrics<br/>(yfinance)"]
+                FA --> FA_DATA["P/E, EPS, Margins<br/>Debt/Equity, ROE<br/>Market Cap"]
+                FA_DATA --> FA_LLM["LLM Analysis<br/>Gemini @ 0.1 temp"]
+                FA_LLM --> FA_OUT["Valuation:<br/>Under / Over / Fair"]
+            end
+
+            subgraph SA_BOX["Sentiment Analyst"]
+                style SA_BOX fill:#2d2000,stroke:#d29922,color:#fff
+                SA["Search News<br/>(DuckDuckGo)"]
+                SA --> SA_DATA["Top 5 Headlines<br/>+ Snippets"]
+                SA_DATA --> SA_LLM["LLM Analysis<br/>Gemini @ 0.2 temp"]
+                SA_LLM --> SA_OUT["Sentiment:<br/>Bullish / Bearish / Neutral"]
+            end
+
+            subgraph RA_BOX["Risk Analyst"]
+                style RA_BOX fill:#2d1117,stroke:#da3633,color:#fff
+                RA["Fetch Risk Data<br/>(yfinance)"]
+                RA --> RA_DATA["Beta, 52-Week Range<br/>Debt-to-Equity"]
+                RA_DATA --> RA_LLM["LLM Analysis<br/>Gemini @ 0.1 temp"]
+                RA_LLM --> RA_OUT["Risk:<br/>High / Medium / Low"]
+            end
+        end
+
+        TA_OUT & FA_OUT & SA_OUT & RA_OUT --> JUDGE
+
+        subgraph JUDGE_BOX["Judge Node"]
+            style JUDGE_BOX fill:#1a1a2e,stroke:#58a6ff,color:#fff
+            JUDGE["Synthesize All 4 Reports<br/>Resolve Conflicts<br/>Gemini @ 0.3 temp"]
+            JUDGE --> VERDICT["FINAL RECOMMENDATION:<br/>BUY / HOLD / SELL"]
+        end
+
+        VERDICT --> END_NODE(["END"])
+
+        style START fill:#2ea043,stroke:#2ea043,color:#fff
+        style END_NODE fill:#da3633,stroke:#da3633,color:#fff
+    </pre>
+</div>
+
+<!-- ============================================ -->
+<!-- SECTION 4: CREWAI MULTI-STOCK PIPELINE -->
+<!-- ============================================ -->
+<div class="section">
+    <h2>4. CrewAI Multi-Stock Analysis Pipeline</h2>
+    <pre class="mermaid">
+    flowchart TB
+        INPUT["Tickers: RELIANCE.NS, TCS.NS, INFY.NS<br/>+ User Query"] --> T1
+
+        subgraph CREW["CrewAI Sequential Process"]
+            style CREW fill:#2d1117,stroke:#da3633,color:#fff
+
+            subgraph T1_BOX["Task 1: Stock Scorer Agent"]
+                style T1_BOX fill:#1a0d2e,stroke:#8957e5,color:#fff
+                T1["For each ticker..."]
+                T1 --> LG1["LangGraph Pipeline<br/>RELIANCE.NS"]
+                T1 --> LG2["LangGraph Pipeline<br/>TCS.NS"]
+                T1 --> LG3["LangGraph Pipeline<br/>INFY.NS"]
+                LG1 --> SCORES["Collected Verdicts:<br/>RELIANCE: BUY<br/>TCS: HOLD<br/>INFY: BUY"]
+                LG2 --> SCORES
+                LG3 --> SCORES
+            end
+
+            SCORES --> T2
+
+            subgraph T2_BOX["Task 2: Correlation & Diversification Analyst"]
+                style T2_BOX fill:#0d1d38,stroke:#1f6feb,color:#fff
+                T2["Analyze Portfolio Metrics"]
+                T2 --> CORR["Correlation Matrix<br/>(6mo price history)"]
+                T2 --> SECTOR["Sector Diversity<br/>(Energy / IT / Banking)"]
+                T2 --> METRICS["Portfolio Metrics<br/>Return, Volatility<br/>Sharpe Ratio"]
+            end
+
+            CORR & SECTOR & METRICS --> T3
+
+            subgraph T3_BOX["Task 3: Portfolio Strategist Agent"]
+                style T3_BOX fill:#0d2818,stroke:#2ea043,color:#fff
+                T3["Synthesize & Recommend"]
+                T3 --> ALLOC["Allocation:<br/>RELIANCE: 40% (1.2L)<br/>INFY: 40% (1.2L)<br/>TCS: 20% (60K)"]
+                T3 --> RISK["Risk Assessment<br/>+ Warnings"]
+            end
+        end
+
+        ALLOC & RISK --> OUTPUT["Final Portfolio<br/>Recommendation"]
+
+        style INPUT fill:#1a1a2e,stroke:#58a6ff,color:#fff
+        style OUTPUT fill:#2ea043,stroke:#2ea043,color:#fff
+    </pre>
+</div>
+
+<!-- ============================================ -->
+<!-- SECTION 5: CREWAI TOOLS BRIDGE -->
+<!-- ============================================ -->
+<div class="section">
+    <h2>5. CrewAI Tools &rarr; Existing System Bridge</h2>
+    <pre class="mermaid">
+    flowchart LR
+        subgraph CREWAI_TOOLS["CrewAI @tool Wrappers"]
+            style CREWAI_TOOLS fill:#2d1117,stroke:#da3633,color:#fff
+            T_ANALYZE["analyze_single_stock()"]
+            T_CORR["get_correlation_matrix()"]
+            T_PORT["get_portfolio_metrics()"]
+            T_FUND["get_stock_fundamentals()"]
+            T_SECTOR["get_sector_diversity_tool()"]
+        end
+
+        subgraph EXISTING["Existing Python Tools"]
+            style EXISTING fill:#0d2818,stroke:#2ea043,color:#fff
+            LG["build_graph().invoke()"]
+            CM["calculate_correlation_matrix()"]
+            PM["calculate_portfolio_metrics()"]
+            GF["get_financial_metrics()"]
+            SD["get_sector_diversity()"]
+        end
+
+        subgraph EXTERNAL["External APIs"]
+            style EXTERNAL fill:#2d2000,stroke:#d29922,color:#fff
+            YF["Yahoo Finance"]
+            DDG["DuckDuckGo"]
+            GEMINI["Google Gemini"]
+        end
+
+        T_ANALYZE -->|"wraps"| LG
+        T_CORR -->|"wraps"| CM
+        T_PORT -->|"wraps"| PM
+        T_FUND -->|"wraps"| GF
+        T_SECTOR -->|"wraps"| SD
+
+        LG --> YF & DDG & GEMINI
+        CM --> YF
+        PM --> YF
+        GF --> YF
+        SD --> YF
+    </pre>
+</div>
+
+<!-- ============================================ -->
+<!-- SECTION 6: FASTAPI ENDPOINTS -->
+<!-- ============================================ -->
+<div class="section">
+    <h2>6. FastAPI Endpoints</h2>
+    <pre class="mermaid">
+    flowchart LR
+        subgraph ENDPOINTS["FastAPI :8000"]
+            style ENDPOINTS fill:#0d1d38,stroke:#1f6feb,color:#fff
+            E1["GET /health"]
+            E2["POST /analyze<br/>(legacy)"]
+            E3["POST /smart-analyze<br/>(intent-aware)"]
+            E4["POST /watchlist-scan<br/>(batch for n8n)"]
+        end
+
+        E1 --> H["{'status': 'ok'}"]
+        E2 --> LG["LangGraph<br/>(single stock only)"]
+        E3 --> ROUTER["Intent Router<br/>classify_intent()"]
+        E4 --> BATCH["Loop over tickers<br/>LangGraph per stock"]
+
+        ROUTER -->|single| LG
+        ROUTER -->|multi| CREW["CrewAI Crew"]
+
+        BATCH --> SIG["WatchlistResponse<br/>signals[] + actionable[]"]
+
+        subgraph RESPONSE["Response Models"]
+            style RESPONSE fill:#161b22,stroke:#30363d,color:#fff
+            R1["AnalyzeResponse<br/>ticker + 4 analyses + verdict"]
+            R2["SmartAnalyzeResponse<br/>intent + single OR crew result"]
+            R3["WatchlistResponse<br/>total_scanned + signals + actionable"]
+        end
+
+        LG --> R1 & R2
+        CREW --> R2
+        SIG --> R3
+
+        style H fill:#0d2818,stroke:#2ea043,color:#8b949e
+    </pre>
+</div>
+
+<!-- ============================================ -->
+<!-- SECTION 7: N8N WORKFLOW -->
+<!-- ============================================ -->
+<div class="section">
+    <h2>7. n8n Daily Pre-Market Watchlist Scan Workflow</h2>
+    <pre class="mermaid">
+    flowchart TB
+        SCHED["Schedule Trigger<br/>9:00 AM IST Daily"] --> SCAN
+
+        SCAN["HTTP POST<br/>/watchlist-scan<br/>10 Indian Stocks:<br/>RELIANCE, TCS, INFY, HDFC,<br/>ICICI, WIPRO, TATAMOTORS,<br/>SBIN, BHARTIARTL, ITC"]
+
+        SCAN --> IF{"Has Actionable<br/>Signals?<br/>(BUY or SELL)"}
+
+        IF -->|"YES"| FMT_ALERT["Format Alert Email<br/>(JavaScript)<br/>HTML with signal cards"]
+        IF -->|"NO"| FMT_CLEAR["Format All-Clear Email<br/>(JavaScript)<br/>HTML with summary table"]
+
+        FMT_ALERT --> EMAIL1["Gmail Send<br/>anubhavkumarrao100@gmail.com<br/>Subject: Trade Today Alert"]
+        FMT_CLEAR --> EMAIL2["Gmail Send<br/>anubhavkumarrao100@gmail.com<br/>Subject: All Clear"]
+
+        style SCHED fill:#2d2000,stroke:#d29922,color:#fff
+        style SCAN fill:#0d1d38,stroke:#1f6feb,color:#fff
+        style IF fill:#1a1a2e,stroke:#58a6ff,color:#fff
+        style FMT_ALERT fill:#2d1117,stroke:#da3633,color:#fff
+        style FMT_CLEAR fill:#0d2818,stroke:#2ea043,color:#fff
+        style EMAIL1 fill:#2d1117,stroke:#da3633,color:#fff
+        style EMAIL2 fill:#0d2818,stroke:#2ea043,color:#fff
+    </pre>
+</div>
+
+<!-- ============================================ -->
+<!-- SECTION 8: MCP INTEGRATIONS -->
+<!-- ============================================ -->
+<div class="section">
+    <h2>8. MCP Server Integrations</h2>
+    <pre class="mermaid">
+    flowchart TB
+        subgraph MCP["MCP Servers (.mcp.json)"]
+            style MCP fill:#1a1a2e,stroke:#58a6ff,color:#fff
+
+            subgraph SQLITE["SQLite MCP"]
+                style SQLITE fill:#0d1d38,stroke:#1f6feb,color:#fff
+                SQL_SERVER["mcp-server-sqlite<br/>DB: data/trade_today.db"]
+                SQL_TOOLS["Tools:<br/>create_table, read_query<br/>write_query, list_tables<br/>describe_table"]
+            end
+
+            subgraph GSHEETS["Google Sheets MCP"]
+                style GSHEETS fill:#0d2818,stroke:#2ea043,color:#fff
+                GS_SERVER["mcp-google-sheets<br/>Credentials: service_account.json"]
+                GS_TOOLS["Tools:<br/>get_sheet_data, update_cells<br/>list_spreadsheets<br/>batch_update_cells"]
+            end
+        end
+
+        SQL_SERVER --> SQL_TOOLS
+        GS_SERVER --> GS_TOOLS
+
+        subgraph USE_CASES["Use Cases"]
+            style USE_CASES fill:#161b22,stroke:#30363d,color:#fff
+            UC1["Store scan history<br/>(ticker, date, verdict, risk)"]
+            UC2["Track signal accuracy<br/>over time"]
+            UC3["Manage watchlist<br/>from Google Sheets"]
+            UC4["Export results<br/>to spreadsheets"]
+        end
+
+        SQL_TOOLS --> UC1 & UC2
+        GS_TOOLS --> UC3 & UC4
+    </pre>
+</div>
+
+<!-- ============================================ -->
+<!-- SECTION 9: DOCKER DEPLOYMENT -->
+<!-- ============================================ -->
+<div class="section">
+    <h2>9. Docker Compose Deployment</h2>
+    <pre class="mermaid">
+    flowchart TB
+        subgraph DOCKER["docker-compose.yml"]
+            style DOCKER fill:#1a1a2e,stroke:#58a6ff,color:#fff
+
+            subgraph API_SVC["tradetoday_api"]
+                style API_SVC fill:#0d1d38,stroke:#1f6feb,color:#fff
+                API_IMG["Python 3.11-slim<br/>uvicorn api:app<br/>Port: 8000"]
+            end
+
+            subgraph FE_SVC["tradetoday_frontend"]
+                style FE_SVC fill:#0d2818,stroke:#2ea043,color:#fff
+                FE_IMG["Python 3.11-slim<br/>streamlit run app.py<br/>Port: 8501"]
+            end
+
+            subgraph N8N_SVC["tradetoday_n8n"]
+                style N8N_SVC fill:#2d2000,stroke:#d29922,color:#fff
+                N8N_IMG["n8nio/n8n<br/>Port: 5678<br/>TZ: Asia/Kolkata"]
+            end
+        end
+
+        FE_SVC -->|depends_on| API_SVC
+        N8N_SVC -->|depends_on| API_SVC
+
+        ENV[".env<br/>GEMINI_API_KEY"] --> API_SVC & FE_SVC
+        VOL["n8n_data volume<br/>(persistent)"] --> N8N_SVC
+
+        USERS["Users"] --> FE_IMG
+        USERS --> API_IMG
+        CRON["9AM IST Schedule"] --> N8N_IMG
+        N8N_IMG -->|"HTTP"| API_IMG
+
+        style USERS fill:#161b22,stroke:#30363d,color:#fff
+        style CRON fill:#161b22,stroke:#30363d,color:#fff
+        style ENV fill:#2d1117,stroke:#da3633,color:#fff
+        style VOL fill:#1a0d2e,stroke:#8957e5,color:#fff
+    </pre>
+</div>
+
+<!-- ============================================ -->
+<!-- SECTION 10: COMPLETE TECH STACK -->
+<!-- ============================================ -->
+<div class="section">
+    <h2>10. Complete Technology Stack</h2>
+    <pre class="mermaid">
+    flowchart TB
+        subgraph LAYER1["Presentation Layer"]
+            style LAYER1 fill:#0d2818,stroke:#2ea043,color:#fff
+            ST["Streamlit<br/>(Chat UI + Expanders)"]
+            FAST["FastAPI<br/>(REST API)"]
+        end
+
+        subgraph LAYER2["Routing Layer"]
+            style LAYER2 fill:#0d1d38,stroke:#1f6feb,color:#fff
+            CLASSIFY["Intent Classifier<br/>(core/classifier.py)"]
+            ROUTER["Query Router<br/>(core/router.py)"]
+        end
+
+        subgraph LAYER3["Orchestration Layer"]
+            style LAYER3 fill:#1a0d2e,stroke:#8957e5,color:#fff
+            LANGGRAPH["LangGraph<br/>(StateGraph + Parallel Exec)"]
+            CREWAI["CrewAI<br/>(Sequential Process)"]
+        end
+
+        subgraph LAYER4["Agent Layer"]
+            style LAYER4 fill:#2d1117,stroke:#da3633,color:#fff
+            LG_AGENTS["LangGraph Nodes:<br/>Supervisor, Technical,<br/>Fundamental, Sentiment,<br/>Risk, Judge"]
+            CR_AGENTS["CrewAI Agents:<br/>Stock Scorer,<br/>Correlation Analyst,<br/>Portfolio Strategist"]
+        end
+
+        subgraph LAYER5["Tool Layer"]
+            style LAYER5 fill:#2d2000,stroke:#d29922,color:#fff
+            MARKET["market_data.py<br/>get_stock_history()<br/>get_financial_metrics()"]
+            TECH["technical_ind.py<br/>SMA, EMA, RSI, MACD"]
+            SEARCH["search.py<br/>search_financial_news()"]
+            CORR["correlation.py<br/>correlation_matrix()<br/>portfolio_metrics()"]
+        end
+
+        subgraph LAYER6["External Services"]
+            style LAYER6 fill:#1a1a2e,stroke:#58a6ff,color:#fff
+            GEMINI["Google Gemini<br/>(gemini-2.5-flash)"]
+            YAHOO["Yahoo Finance<br/>(yfinance)"]
+            DDG["DuckDuckGo<br/>(duckduckgo-search)"]
+        end
+
+        subgraph LAYER7["Automation & Storage"]
+            style LAYER7 fill:#161b22,stroke:#30363d,color:#fff
+            N8N["n8n<br/>(Scheduled Workflows)"]
+            SQLITE["SQLite MCP<br/>(Scan History)"]
+            GSHEETS["Google Sheets MCP<br/>(Watchlist)"]
+            GMAIL["Gmail<br/>(Email Reports)"]
+            DOCKER["Docker Compose<br/>(3 Services)"]
+        end
+
+        LAYER1 --> LAYER2 --> LAYER3 --> LAYER4 --> LAYER5 --> LAYER6
+        N8N --> FAST
+        FAST --> SQLITE
+        GSHEETS --> N8N
+        N8N --> GMAIL
+    </pre>
+</div>
+
+<p class="note">Generated for Trade Today AI Trading Swarm | Last updated: March 2026</p>
+
+<script>
+    mermaid.initialize({
+        startOnLoad: true,
+        theme: 'dark',
+        themeVariables: {
+            darkMode: true,
+            background: '#161b22',
+            primaryColor: '#1f6feb',
+            primaryTextColor: '#c9d1d9',
+            primaryBorderColor: '#30363d',
+            lineColor: '#58a6ff',
+            secondaryColor: '#1a0d2e',
+            tertiaryColor: '#0d2818',
+            fontFamily: 'Segoe UI, Arial, sans-serif'
+        },
+        flowchart: {
+            useMaxWidth: true,
+            htmlLabels: true,
+            curve: 'basis',
+            padding: 20,
+            nodeSpacing: 50,
+            rankSpacing: 60
+        }
+    });
+</script>
+
+</body>
+</html>
